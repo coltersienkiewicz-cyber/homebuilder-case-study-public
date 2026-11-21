@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>U.S. New Housing Market — Supply & Demand Simulator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            slate: {
+              850: '#172033',
+              900: '#0f172a',
+              950: '#090d16',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom subtle range slider styling for macro desk aesthetic */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      background: #1e293b;
+      border-radius: 999px;
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #38bdf8;
+      border: 2px solid #0f172a;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
+      transition: transform 0.12s ease, background-color 0.12s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+      background: #7dd3fc;
+    }
+    input[type="range"].supply-slider::-webkit-slider-thumb {
+      background: #f59e0b;
+      box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+    }
+    input[type="range"].supply-slider::-webkit-slider-thumb:hover {
+      background: #fbbf24;
+    }
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen selection:bg-sky-500/30">
+
+  <!-- Top Header Bar -->
+  <header class="border-b border-slate-800/80 bg-slate-900/70 backdrop-blur-md sticky top-0 z-30">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 py-3.5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-sky-500/15 border border-sky-400/30 flex items-center justify-center text-sky-400 shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h1 class="text-base sm:text-lg font-semibold tracking-tight text-white">U.S. New Privately Owned Housing — Supply &amp; Demand Model</h1>
+            <span class="text-[11px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">Price-Taker / Sticky-Supply Regime</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">Simulating asymmetric housing elasticities: fast financial/rent-to-buy demand shifts vs. time- &amp; input-constrained construction supply.</p>
+        </div>
+      </div>
+
+      <!-- Macro Scenario Presets -->
+      <div class="flex flex-wrap items-center gap-1.5">
+        <span class="text-[11px] font-medium uppercase tracking-wider text-slate-400 mr-1">Scenarios:</span>
+        <button onclick="applyPreset('baseline')" id="btn-baseline" class="preset-btn px-2.5 py-1.5 rounded-md text-xs font-medium bg-sky-500/20 text-sky-300 border border-sky-500/40 hover:bg-sky-500/30 transition">
+          Baseline
+        </button>
+        <button onclick="applyPreset('zirp')" id="btn-zirp" class="preset-btn px-2.5 py-1.5 rounded-md text-xs font-medium bg-slate-800/90 text-slate-300 border border-slate-700 hover:bg-slate-800 transition">
+          2021 ZIRP + Bottlenecks
+        </button>
+        <button onclick="applyPreset('rateShock')" id="btn-rateShock" class="preset-btn px-2.5 py-1.5 rounded-md text-xs font-medium bg-slate-800/90 text-slate-300 border border-slate-700 hover:bg-slate-800 transition">
+          7.5% Rate Shock
+        </button>
+        <button onclick="applyPreset('rentSurge')" id="btn-rentSurge" class="preset-btn px-2.5 py-1.5 rounded-md text-xs font-medium bg-slate-800/90 text-slate-300 border border-slate-700 hover:bg-slate-800 transition">
+          Rent Surge &amp; Move-Up
+        </button>
+        <button onclick="applyPreset('supplyRelief')" id="btn-supplyRelief" class="preset-btn px-2.5 py-1.5 rounded-md text-xs font-medium bg-slate-800/90 text-slate-300 border border-slate-700 hover:bg-slate-800 transition">
+          PPI Deflation &amp; Permitting Reform
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace Grid -->
+  <main class="max-w-[1440px] mx-auto px-4 sm:px-6 py-5 grid grid-cols-1 xl:grid-cols-12 gap-5">
+
+    <!-- Left / Center Visualization & KPIs (7 columns on xl) -->
+    <section class="xl:col-span-7 flex flex-col gap-4">
+
+      <!-- KPI Strip -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <!-- Equilibrium Price -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-medium uppercase tracking-wider text-slate-400">Real Home Price (P*)</span>
+            <span id="kpi-price-badge" class="text-[11px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">0.0%</span>
+          </div>
+          <div class="mt-1.5 flex items-baseline gap-2">
+            <span id="kpi-price" class="text-xl sm:text-2xl font-bold font-mono text-white tabular-nums">$425k</span>
+            <span id="kpi-price-base" class="text-xs font-mono text-slate-500 tabular-nums">Base: $425k</span>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1">Median new build clearing price</p>
+        </div>
+
+        <!-- Equilibrium Quantity -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-medium uppercase tracking-wider text-slate-400">Housing Units (Q*)</span>
+            <span id="kpi-qty-badge" class="text-[11px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">0.0%</span>
+          </div>
+          <div class="mt-1.5 flex items-baseline gap-2">
+            <span id="kpi-qty" class="text-xl sm:text-2xl font-bold font-mono text-white tabular-nums">1.42M</span>
+            <span id="kpi-qty-base" class="text-xs font-mono text-slate-500 tabular-nums">Base: 1.42M</span>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1">SAAR privately owned starts/sales</p>
+        </div>
+
+        <!-- Price Elasticity of Supply -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-medium uppercase tracking-wider text-slate-400">Supply Elasticity (εs)</span>
+            <span id="kpi-es-regime" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">INELASTIC</span>
+          </div>
+          <div class="mt-1.5 flex items-baseline gap-2">
+            <span id="kpi-es" class="text-xl sm:text-2xl font-bold font-mono text-amber-400 tabular-nums">0.46</span>
+            <span class="text-xs text-slate-500">at E₁</span>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1">%ΔQ / %ΔP along supply curve</p>
+        </div>
+
+        <!-- Price Elasticity of Demand -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-medium uppercase tracking-wider text-slate-400">Demand Elasticity (|εd|)</span>
+            <span id="kpi-ed-regime" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30">ELASTIC</span>
+          </div>
+          <div class="mt-1.5 flex items-baseline gap-2">
+            <span id="kpi-ed" class="text-xl sm:text-2xl font-bold font-mono text-sky-400 tabular-nums">1.38</span>
+            <span id="kpi-ed-segment" class="text-xs text-slate-500">Margin zone</span>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1">Rent/existing-to-new substitution</p>
+        </div>
+      </div>
+
+      <!-- Main Chart Container -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col">
+        <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-800/80">
+          <div class="flex items-center gap-4 text-xs">
+            <div class="flex items-center gap-1.5">
+              <span class="w-3 h-0.5 bg-sky-400 inline-block rounded"></span>
+              <span class="text-slate-200 font-medium">Demand (D₁)</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-3 h-0.5 bg-amber-400 inline-block rounded"></span>
+              <span class="text-slate-200 font-medium">Supply (S₁)</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-3 h-0.5 border-t border-dashed border-slate-500 inline-block"></span>
+              <span class="text-slate-400">Baseline (D₀, S₀, E₀)</span>
+            </div>
+          </div>
+
+          <!-- Annotation Toggle -->
+          <div class="flex items-center gap-3">
+            <label class="inline-flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer select-none">
+              <input type="checkbox" id="toggle-zones" checked onchange="drawChart()" class="rounded bg-slate-800 border-slate-700 text-sky-500 focus:ring-0" />
+              <span>Show Structural Zones</span>
+            </label>
+            <button onclick="resetToBaseline()" class="text-xs font-medium text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-800/80 hover:bg-slate-800 border border-slate-700/70 transition">
+              Reset
+            </button>
+          </div>
+        </div>
+
+        <!-- Responsive Canvas Wrapper -->
+        <div class="relative w-full h-[380px] sm:h-[440px] mt-2" id="chart-wrapper">
+          <canvas id="marketCanvas" class="w-full h-full block rounded-lg cursor-crosshair"></canvas>
+          <!-- Hover Tooltip -->
+          <div id="chart-tooltip" class="hidden pointer-events-none absolute z-20 bg-slate-950/95 border border-slate-700 rounded-lg px-3 py-2 text-xs shadow-xl backdrop-blur-sm">
+            <div class="font-mono text-slate-300" id="tt-coords">Q: 1.42M | P: $425k</div>
+            <div class="text-[11px] text-sky-400 mt-0.5" id="tt-demand">Demand Price: $425k</div>
+            <div class="text-[11px] text-amber-400" id="tt-supply">Supply Cost: $425k</div>
+          </div>
+        </div>
+
+        <!-- Structural Legend / Explanation Bar -->
+        <div class="mt-3 pt-3 border-t border-slate-800/80 grid grid-cols-1 md:grid-cols-3 gap-2.5 text-[11px] text-slate-400">
+          <div class="bg-slate-950/60 border border-slate-800/80 rounded-lg p-2.5">
+            <span class="text-sky-400 font-semibold block mb-0.5">1. Kinked Demand Structure</span>
+            Steep left segment reflects inelastic baseline shelter demand; flatter right segment captures renters &amp; existing owners substituting into new builds.
+          </div>
+          <div class="bg-slate-950/60 border border-slate-800/80 rounded-lg p-2.5">
+            <span class="text-amber-400 font-semibold block mb-0.5">2. Sticky Supply &amp; Bottlenecks</span>
+            Builders are price takers facing multi-month permitting, skilled labor shortages, and land limits—causing marginal costs to curve sharply upward past ~1.7M SAAR.
+          </div>
+          <div class="bg-slate-950/60 border border-slate-800/80 rounded-lg p-2.5">
+            <span class="text-emerald-400 font-semibold block mb-0.5">3. Price-Dominated Adjustment</span>
+            Because supply is steep (low εs), demand shocks transmit predominantly into real home prices (ΔP) rather than immediate physical unit volume (ΔQ).
+          </div>
+        </div>
+      </div>
+
+      <!-- Dynamic Macro Transmission Analysis Box -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-200">Macro Transmission &amp; Builder Margin Note</h2>
+          </div>
+          <span id="price-share-pill" class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+            Shock Absorption: Balanced
+          </span>
+        </div>
+        <p id="macro-narrative" class="text-xs sm:text-[13px] leading-relaxed text-slate-300">
+          Market is at baseline equilibrium ($425k real median price, 1.42M SAAR units). Builders operate near normal cycle capacity with moderate permitting lead times.
+        </p>
+      </div>
+
+    </section>
+
+    <!-- Right Control Deck (5 columns on xl) -->
+    <aside class="xl:col-span-5 flex flex-col gap-4">
+
+      <!-- Demand Drivers Card -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 sm:p-5">
+        <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
+              <h2 class="text-sm font-semibold text-white">Demand Drivers (Fast-Adjusting)</h2>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-0.5">Shifts D curve rapidly via financing affordability &amp; rent-vs-buy substitution</p>
+          </div>
+          <span id="demand-shift-badge" class="text-xs font-mono px-2 py-0.5 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30">
+            ΔD: 0.00M
+          </span>
+        </div>
+
+        <div class="space-y-4">
+          <!-- 30-Year Mortgage Rate -->
+          <div>
+            <div class="flex justify-between items-baseline mb-1">
+              <label for="slider-rate" class="text-xs font-medium text-slate-200">30-Year Fixed Mortgage Rate</label>
+              <span id="val-rate" class="text-xs font-mono font-semibold text-sky-400 tabular-nums">6.20%</span>
+            </div>
+            <input type="range" id="slider-rate" min="3.0" max="8.5" step="0.1" value="6.2" oninput="updateModel()" />
+            <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+              <span>3.0% (ZIRP Era)</span>
+              <span>6.2% (Base)</span>
+              <span>8.5% (Tightening)</span>
+            </div>
+          </div>
+
+          <!-- Consumer Sentiment & Real Income -->
+          <div>
+            <div class="flex justify-between items-baseline mb-1">
+              <label for="slider-sentiment" class="text-xs font-medium text-slate-200">Consumer Sentiment &amp; Real Income Growth</label>
+              <span id="val-sentiment" class="text-xs font-mono font-semibold text-sky-400 tabular-nums">100 (Neutral)</span>
+            </div>
+            <input type="range" id="slider-sentiment" min="60" max="140" step="1" value="100" oninput="updateModel()" />
+            <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+              <span>60 (Recession Fear)</span>
+              <span>100 (Base)</span>
+              <span>140 (Move-Up Boom)</span>
+            </div>
+          </div>
+
+          <!-- Rent Inflation & Inflation Expectations -->
+          <div>
+            <div class="flex justify-between items-baseline mb-1">
+              <label for="slider-rent" class="text-xs font-medium text-slate-200">Rent Inflation &amp; Shelter Hedge Demand</label>
+              <span id="val-rent" class="text-xs font-mono font-semibold text-sky-400 tabular-nums">3.2% YoY</span>
+            </div>
+            <input type="range" id="slider-rent" min="0.0" max="9.0" step="0.2" value="3.2" oninput="updateModel()" />
+            <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+              <span>0% (Rent Disinflation)</span>
+              <span>3.2% (Base)</span>
+              <span>9.0% (Rent-to-Buy Rush)</span>
+            </div>
+          </div>
+
+          <!-- Baseline Household Formation -->
+          <div>
+            <div class="flex justify-between items-baseline mb-1">
+              <label for="slider-demographics" class="text-xs font-medium text-slate-200">Baseline Household Formation (Inelastic Floor)</label>
+              <span id="val-demographics" class="text-xs font-mono font-semibold text-sky-400 tabular-nums">1.35M / yr</span>
+            </div>
+            <input type="range" id="slider-demographics" min="1.05" max="1.75" step="0.02" value="1.35" oninput="updateModel()" />
+            <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+              <span>1.05M (Slow Growth)</span>
+              <span>1.35M (Base)</span>
+              <span>1.75M (Millennial/Gen-Z Peak)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Supply Drivers Card -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 sm:p-5">
+        <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+              <h2 class="text-sm font-semibold text-white">Supply Drivers (Sticky &amp; Constrained)</h2>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-0.5">Builders are price takers constrained by materials, energy, labor &amp; entitlements</p>
+          </div>
+          <span id="supply-shift-badge" class="text-xs font-mono px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
+            ΔCost: $0k
+          </span>
+        </div>
+
+        <div class="space-y-4">
+          <!-- Construction Input PPI -->
+          <div>
+            <div class="flex justify-between items-baseline mb-1">
+              <label for="slider-ppi" class="text-xs font-medium text-slate-200">Construction Materials &amp; Energy PPI</label>
+              <span id="val-ppi" class="text-xs font-mono font-semibold text-amber-400 tabular-nums">100 (Base Index)</span>
+            </div>
+            <input type="range" id="slider-ppi" class="supply-slider" min="75" max="145" step="1" value="100" oninput="updateModel()" />
+            <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+              <span>75 (Lumber/Steel Drop)</span>
+              <span>100 (Base)</span>
+              <span>145 (Input Cost Spike)</span>
+            </div>
+          </div>
+
+          <!-- Labor, Permitting & Land Bottlenecks -->
+          <div>
+            <div class="flex justify-between items-baseline mb-1">
+              <label for="slider-bottleneck" class="text-xs font-medium text-slate-200">Labor, Permitting &amp; Land Stickiness</label>
+              <span id="val-bottleneck" class="text-xs font-mono font-semibold text-amber-400 tabular-nums">50 / 100 (Moderate)</span>
+            </div>
+            <input type="range" id="slider-bottleneck" class="supply-slider" min="15" max="95" step="1" value="50" oninput="updateModel()" />
+            <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+              <span>15 (Fast Entitlements)</span>
+              <span>50 (Base)</span>
+              <span>95 (Severe Gridlock)</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-2 bg-slate-950/60 border border-slate-800/80 rounded-lg p-2">
+              <strong class="text-slate-300">Stickiness Effect:</strong> Higher gridlock steepens the supply curve and lowers the physical capacity ceiling (harder to scale starts even when prices surge).
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Decomposition Summary Card -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2.5">Equilibrium Adjustment Breakdown</h3>
+        <div class="space-y-2 text-xs">
+          <div class="flex items-center justify-between py-1 border-b border-slate-800/60">
+            <span class="text-slate-400">Price Adjustment (P₀ → P₁)</span>
+            <span id="decomp-price" class="font-mono font-medium text-slate-200 tabular-nums">$425k → $425k ($0k)</span>
+          </div>
+          <div class="flex items-center justify-between py-1 border-b border-slate-800/60">
+            <span class="text-slate-400">Volume Adjustment (Q₀ → Q₁)</span>
+            <span id="decomp-qty" class="font-mono font-medium text-slate-200 tabular-nums">1.42M → 1.42M (0.00M)</span>
+          </div>
+          <div class="flex items-center justify-between py-1">
+            <span class="text-slate-400">Builder Capacity Utilization</span>
+            <span id="decomp-util" class="font-mono font-medium text-amber-400 tabular-nums">76.8% of Ceiling</span>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+  </main>
+
+  <script>
+    // =========================================================================
+    // 1. MODEL PARAMETERS & ECONOMIC CALIBRATION
+    // =========================================================================
+    // X-axis: Quantity Q in Millions SAAR [0.50, 2.40]
+    // Y-axis: Real Price P in $ Thousands [240, 660]
+
+    const BASELINE_PARAMS = {
+      rate: 6.2,          // 30-yr mortgage rate (%)
+      sentiment: 100,     // Consumer sentiment & real income index (60 - 140)
+      rent: 3.2,          // Rent inflation YoY (%)
+      demographics: 1.35, // Baseline household formation (Millions/yr)
+      ppi: 100,           // Construction materials & energy PPI index (75 - 145)
+      bottleneck: 50      // Land, labor & permitting stickiness (15 - 95)
+    };
+
+    let state = { ...BASELINE_PARAMS };
+    let baselineEq = null;
+    let currentEq = null;
+    let hoverQ = null;
+
+    // Chart domain bounds
+    const Q_MIN = 0.50;
+    const Q_MAX = 2.40;
+    const P_MIN = 240;
+    const P_MAX = 660;
+
+    // =========================================================================
+    // 2. ECONOMIC CURVE EQUATIONS (INVERSE DEMAND & INVERSE SUPPLY)
+    // =========================================================================
+
+    /**
+     * Inverse Demand Curve: P_d(Q)
+     * Captures two distinct buyer segments:
+     * 1. Baseline inelastic shelter/household formation floor (Q_kink):
+     *    Below Q_kink, households need shelter regardless of price -> steep slope.
+     * 2. Elastic substitution margin (Q > Q_kink):
+     *    Renters deciding to buy/build or existing owners trading up -> flatter slope.
+     * Shifted horizontally by mortgage rates, sentiment/income, rent inflation, and demographics.
+     */
+    function getDemandPrice(Q, params) {
+      // Shift components in Millions SAAR:
+      // Mortgage rate: -0.14M per +1% rate increase (dominant fast-moving lever)
+      const rateShift = -0.145 * (params.rate - BASELINE_PARAMS.rate);
+      // Consumer sentiment & real income: +0.0055M per index point above 100
+      const sentimentShift = 0.0055 * (params.sentiment - BASELINE_PARAMS.sentiment);
+      // Rent inflation: +0.032M per +1% rent inflation (pushes renters to buy/build)
+      const rentShift = 0.032 * (params.rent - BASELINE_PARAMS.rent);
+      // Demographics: 1:1 shift in baseline household floor
+      const demoShift = 0.85 * (params.demographics - BASELINE_PARAMS.demographics);
+
+      const totalQShift = rateShift + sentimentShift + rentShift + demoShift;
+
+      // Kink point separates inelastic baseline shelter demand from elastic rent/move-up margin
+      const Q_kink = 1.08 + demoShift * 0.75 + rateShift * 0.35;
+      const P_kink = 472 + (params.sentiment - 100) * 0.55 + (params.rent - 3.2) * 4.5 - (params.rate - 6.2) * 11.0;
+
+      // Effective quantity relative to horizontal demand shift
+      const Q_adj = Q - (totalQShift - demoShift * 0.75 - rateShift * 0.35);
+
+      if (Q_adj <= Q_kink) {
+        // Steep inelastic baseline demand segment (slope = -340 $k per 1M units)
+        return P_kink - 340 * (Q_adj - Q_kink);
+      } else {
+        // Flatter elastic discretionary / substitution segment (slope = -138 $k per 1M units)
+        return P_kink - 138 * (Q_adj - Q_kink);
+      }
+    }
+
+    /**
+     * Inverse Supply Curve: P_s(Q)
+     * Captures homebuilders as price takers facing:
+     * 1. Input costs (PPI: lumber, steel, concrete, diesel/energy) + builder financing cost.
+     * 2. Steep linear slope due to land/labor stickiness.
+     * 3. Non-linear capacity bottleneck penalty as Q approaches the physical ceiling Q_cap
+     *    (permitting queues, subcontractor shortages, overtime/expediting costs).
+     */
+    function getSupplyPrice(Q, params) {
+      // Base marginal cost intercept ($k) at Q = 0.60M
+      const ppiCostShift = 1.65 * (params.ppi - BASELINE_PARAMS.ppi);
+      // Higher interest rates slightly raise builder AD&C (Acquisition, Development & Construction) loan costs
+      const builderFinanceShift = 4.2 * (params.rate - BASELINE_PARAMS.rate);
+      const baseIntercept = 265 + ppiCostShift + builderFinanceShift;
+
+      // Stickiness factor (0.50 at base bottleneck=50; ranges from 0.25 to 1.15)
+      const stickiness = 0.22 + (params.bottleneck / 100) * 0.78;
+
+      // Linear marginal cost slope ($k per 1M units) — steep because supply is sticky
+      const linearSlope = 145 + 165 * stickiness;
+
+      // Non-linear capacity bottleneck term (convex ramp past ~1.45M SAAR)
+      // Higher bottleneck score lowers the threshold where marginal costs spike
+      const bottleneckThreshold = 1.68 - (params.bottleneck / 100) * 0.42;
+      const excessQ = Math.max(0, Q - bottleneckThreshold);
+      const convexityCoeff = 220 + (params.bottleneck / 100) * 580;
+      const bottleneckPenalty = convexityCoeff * Math.pow(excessQ, 2.2);
+
+      return baseIntercept + linearSlope * (Q - 0.60) + bottleneckPenalty;
+    }
+
+    /**
+     * Numerical bisection solver to find Market Equilibrium (Q*, P*) where P_d(Q*) = P_s(Q*)
+     */
+    function solveEquilibrium(params) {
+      let low = 0.30;
+      let high = 2.60;
+      let mid = 1.40;
+
+      for (let i = 0; i < 60; i++) {
+        mid = (low + high) / 2;
+        const diff = getDemandPrice(mid, params) - getSupplyPrice(mid, params);
+        if (diff > 0) {
+          low = mid;
+        } else {
+          high = mid;
+        }
+      }
+
+      const Q_star = mid;
+      const P_star = (getDemandPrice(Q_star, params) + getSupplyPrice(Q_star, params)) / 2;
+
+      // Calculate point price elasticities at equilibrium:
+      // ε = (dQ / dP) * (P / Q) = (1 / (dP/dQ)) * (P / Q)
+      const dQ = 0.005;
+      const dPd_dQ = (getDemandPrice(Q_star + dQ, params) - getDemandPrice(Q_star - dQ, params)) / (2 * dQ);
+      const dPs_dQ = (getSupplyPrice(Q_star + dQ, params) - getSupplyPrice(Q_star - dQ, params)) / (2 * dQ);
+
+      const ed = Math.abs((1 / dPd_dQ) * (P_star / Q_star));
+      const es = Math.abs((1 / dPs_dQ) * (P_star / Q_star));
+
+      // Effective physical capacity ceiling (where marginal cost exceeds $650k)
+      let capLow = 1.0, capHigh = 2.6;
+      for (let i = 0; i < 40; i++) {
+        const cMid = (capLow + capHigh) / 2;
+        if (getSupplyPrice(cMid, params) < 640) capLow = cMid;
+        else capHigh = cMid;
+      }
+
+      return {
+        Q: Q_star,
+        P: P_star,
+        ed: ed,
+        es: es,
+        capacityCeiling: capLow,
+        utilization: Math.min(100, (Q_star / capLow) * 100)
+      };
+    }
+
+    // =========================================================================
+    // 3. STATE MANAGEMENT & PRESETS
+    // =========================================================================
+
+    const PRESETS = {
+      baseline: {
+        rate: 6.2, sentiment: 100, rent: 3.2, demographics: 1.35, ppi: 100, bottleneck: 50
+      },
+      zirp: {
+        rate: 3.1, sentiment: 126, rent: 6.8, demographics: 1.52, ppi: 128, bottleneck: 82
+      },
+      rateShock: {
+        rate: 7.6, sentiment: 78, rent: 4.0, demographics: 1.35, ppi: 118, bottleneck: 64
+      },
+      rentSurge: {
+        rate: 5.4, sentiment: 118, rent: 8.2, demographics: 1.55, ppi: 104, bottleneck: 55
+      },
+      supplyRelief: {
+        rate: 5.5, sentiment: 108, rent: 2.8, demographics: 1.40, ppi: 82, bottleneck: 22
+      }
+    };
+
+    function applyPreset(name) {
+      const p = PRESETS[name];
+      if (!p) return;
+
+      document.getElementById('slider-rate').value = p.rate;
+      document.getElementById('slider-sentiment').value = p.sentiment;
+      document.getElementById('slider-rent').value = p.rent;
+      document.getElementById('slider-demographics').value = p.demographics;
+      document.getElementById('slider-ppi').value = p.ppi;
+      document.getElementById('slider-bottleneck').value = p.bottleneck;
+
+      // Update active preset button styling
+      document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.classList.remove('bg-sky-500/20', 'text-sky-300', 'border-sky-500/40');
+        btn.classList.add('bg-slate-800/90', 'text-slate-300', 'border-slate-700');
+      });
+      const activeBtn = document.getElementById(`btn-${name}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('bg-slate-800/90', 'text-slate-300', 'border-slate-700');
+        activeBtn.classList.add('bg-sky-500/20', 'text-sky-300', 'border-sky-500/40');
+      }
+
+      updateModel();
+    }
+
+    function resetToBaseline() {
+      applyPreset('baseline');
+    }
+
+    function updateModel() {
+      state = {
+        rate: parseFloat(document.getElementById('slider-rate').value),
+        sentiment: parseFloat(document.getElementById('slider-sentiment').value),
+        rent: parseFloat(document.getElementById('slider-rent').value),
+        demographics: parseFloat(document.getElementById('slider-demographics').value),
+        ppi: parseFloat(document.getElementById('slider-ppi').value),
+        bottleneck: parseFloat(document.getElementById('slider-bottleneck').value)
+      };
+
+      // Update Slider Readouts
+      document.getElementById('val-rate').textContent = `${state.rate.toFixed(2)}%`;
+
+      const sentLabel = state.sentiment < 85 ? 'Bearish' : state.sentiment > 115 ? 'Bullish' : 'Neutral';
+      document.getElementById('val-sentiment').textContent = `${state.sentiment} (${sentLabel})`;
+
+      document.getElementById('val-rent').textContent = `${state.rent.toFixed(1)}% YoY`;
+      document.getElementById('val-demographics').textContent = `${state.demographics.toFixed(2)}M / yr`;
+      document.getElementById('val-ppi').textContent = `${state.ppi} (${state.ppi === 100 ? 'Base' : state.ppi > 100 ? '+' + (state.ppi - 100) + '%' : (state.ppi - 100) + '%'})`;
+
+      const bnLabel = state.bottleneck < 35 ? 'Low' : state.bottleneck > 70 ? 'Severe' : 'Moderate';
+      document.getElementById('val-bottleneck').textContent = `${state.bottleneck} / 100 (${bnLabel})`;
+
+      // Solve Baseline & Current Equilibria
+      if (!baselineEq) {
+        baselineEq = solveEquilibrium(BASELINE_PARAMS);
+      }
+      currentEq = solveEquilibrium(state);
+
+      updateDashboardUI();
+      drawChart();
+    }
+
+    function updateDashboardUI() {
+      const dP = currentEq.P - baselineEq.P;
+      const dPPct = (dP / baselineEq.P) * 100;
+      const dQ = currentEq.Q - baselineEq.Q;
+      const dQPct = (dQ / baselineEq.Q) * 100;
+
+      // Price KPI
+      document.getElementById('kpi-price').textContent = `$${Math.round(currentEq.P)}k`;
+      document.getElementById('kpi-price-base').textContent = `Base: $${Math.round(baselineEq.P)}k`;
+      const pBadge = document.getElementById('kpi-price-badge');
+      pBadge.textContent = `${dPPct >= 0 ? '+' : ''}${dPPct.toFixed(1)}%`;
+      pBadge.className = `text-[11px] font-mono px-1.5 py-0.5 rounded ${
+        Math.abs(dPPct) < 0.2 ? 'bg-slate-800 text-slate-300' :
+        dPPct > 0 ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' :
+        'bg-rose-500/15 text-rose-300 border border-rose-500/30'
+      }`;
+
+      // Quantity KPI
+      document.getElementById('kpi-qty').textContent = `${currentEq.Q.toFixed(2)}M`;
+      document.getElementById('kpi-qty-base').textContent = `Base: ${baselineEq.Q.toFixed(2)}M`;
+      const qBadge = document.getElementById('kpi-qty-badge');
+      qBadge.textContent = `${dQPct >= 0 ? '+' : ''}${dQPct.toFixed(1)}%`;
+      qBadge.className = `text-[11px] font-mono px-1.5 py-0.5 rounded ${
+        Math.abs(dQPct) < 0.2 ? 'bg-slate-800 text-slate-300' :
+        dQPct > 0 ? 'bg-sky-500/15 text-sky-300 border border-sky-500/30' :
+        'bg-rose-500/15 text-rose-300 border border-rose-500/30'
+      }`;
+
+      // Elasticities
+      document.getElementById('kpi-es').textContent = currentEq.es.toFixed(2);
+      const esRegime = document.getElementById('kpi-es-regime');
+      if (currentEq.es < 0.35) {
+        esRegime.textContent = 'VERY STICKY';
+        esRegime.className = 'text-[10px] font-mono px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-300 border border-rose-500/30';
+      } else if (currentEq.es < 0.75) {
+        esRegime.textContent = 'INELASTIC';
+        esRegime.className = 'text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30';
+      } else {
+        esRegime.textContent = 'RESPONSIVE';
+        esRegime.className = 'text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30';
+      }
+
+      document.getElementById('kpi-ed').textContent = currentEq.ed.toFixed(2);
+      const edRegime = document.getElementById('kpi-ed-regime');
+      const edSeg = document.getElementById('kpi-ed-segment');
+      if (currentEq.ed < 1.0) {
+        edRegime.textContent = 'INELASTIC';
+        edRegime.className = 'text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30';
+        edSeg.textContent = 'Shelter floor';
+      } else {
+        edRegime.textContent = 'ELASTIC';
+        edRegime.className = 'text-[10px] font-mono px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30';
+        edSeg.textContent = 'Margin zone';
+      }
+
+      // Shift badges on cards
+      const dShift = (
+        -0.145 * (state.rate - BASELINE_PARAMS.rate) +
+        0.0055 * (state.sentiment - BASELINE_PARAMS.sentiment) +
+        0.032 * (state.rent - BASELINE_PARAMS.rent) +
+        0.85 * (state.demographics - BASELINE_PARAMS.demographics)
+      );
+      document.getElementById('demand-shift-badge').textContent = `ΔD: ${dShift >= 0 ? '+' : ''}${dShift.toFixed(2)}M`;
+
+      const sCostShift = 1.65 * (state.ppi - BASELINE_PARAMS.ppi) + 4.2 * (state.rate - BASELINE_PARAMS.rate);
+      document.getElementById('supply-shift-badge').textContent = `ΔCost: ${sCostShift >= 0 ? '+' : ''}$${Math.round(sCostShift)}k`;
+
+      // Decomposition rows
+      document.getElementById('decomp-price').textContent =
+        `$${Math.round(baselineEq.P)}k → $${Math.round(currentEq.P)}k (${dP >= 0 ? '+' : ''}$${Math.round(dP)}k)`;
+      document.getElementById('decomp-qty').textContent =
+        `${baselineEq.Q.toFixed(2)}M → ${currentEq.Q.toFixed(2)}M (${dQ >= 0 ? '+' : ''}${dQ.toFixed(2)}M)`;
+      document.getElementById('decomp-util').textContent =
+        `${currentEq.utilization.toFixed(1)}% of ${currentEq.capacityCeiling.toFixed(2)}M Ceiling`;
+
+      // Dynamic Macro Transmission Narrative
+      updateMacroNarrative(dP, dPPct, dQ, dQPct, dShift, sCostShift);
+    }
+
+    function updateMacroNarrative(dP, dPPct, dQ, dQPct, dShift, sCostShift) {
+      const pill = document.getElementById('price-share-pill');
+      const box = document.getElementById('macro-narrative');
+
+      const absP = Math.abs(dPPct);
+      const absQ = Math.abs(dQPct);
+      const totalMove = absP + absQ;
+
+      if (totalMove < 0.8) {
+        pill.textContent = 'Shock Absorption: Baseline';
+        box.innerHTML = `Market is near baseline equilibrium (<strong class="text-white">$${Math.round(currentEq.P)}k</strong> real price, <strong class="text-white">${currentEq.Q.toFixed(2)}M SAAR</strong>). Builders are price takers operating at <strong class="text-amber-300">${currentEq.utilization.toFixed(0)}%</strong> of physical capacity, balancing steady demographic household formation against moderate 6.2% mortgage rates.`;
+        return;
+      }
+
+      const priceShare = Math.round((absP / totalMove) * 100);
+      pill.textContent = `Adjustment Split: ${priceShare}% Price / ${100 - priceShare}% Volume`;
+
+      let demandComment = '';
+      if (dShift > 0.12) {
+        demandComment = `Strong tailwinds (lower rates, surging rents, or bullish sentiment) have pulled renters and move-up buyers into new construction, shifting demand outward by <strong class="text-sky-300">+${dShift.toFixed(2)}M units</strong>.`;
+      } else if (dShift < -0.12) {
+        demandComment = `Tighter financial conditions and weaker buyer sentiment have sidelined discretionary move-up buyers and renters, contracting demand by <strong class="text-sky-300">${dShift.toFixed(2)}M units</strong> toward the inelastic shelter floor.`;
+      } else {
+        demandComment = `Aggregate housing demand remains broadly anchored near baseline levels.`;
+      }
+
+      let supplyComment = '';
+      if (currentEq.es < 0.38) {
+        supplyComment = `Because supply is severely bottlenecked (<strong class="text-amber-300">εs = ${currentEq.es.toFixed(2)}</strong>), homebuilders cannot quickly expand physical starts due to permitting, land, and labor lead times—forcing <strong class="text-white">${priceShare}%</strong> of the market adjustment into real home prices (${dPPct >= 0 ? '+' : ''}${dPPct.toFixed(1)}%).`;
+      } else if (sCostShift > 18) {
+        supplyComment = `Elevated construction input PPI and financing costs (<strong class="text-amber-300">+$${Math.round(sCostShift)}k/unit</strong>) compress builder margins and push the supply curve upward, raising clearing prices even as builders act as price takers.`;
+      } else if (sCostShift < -15 && currentEq.es > 0.55) {
+        supplyComment = `Input cost deflation and streamlined permitting have flattened and shifted supply outward (<strong class="text-emerald-300">εs = ${currentEq.es.toFixed(2)}</strong>), allowing builders to deliver more units (<strong class="text-white">${dQPct >= 0 ? '+' : ''}${dQPct.toFixed(1)}%</strong>) without triggering runaway price inflation.`;
+      } else {
+        supplyComment = `With sticky short-run supply (<strong class="text-amber-300">εs = ${currentEq.es.toFixed(2)}</strong>), price absorbs <strong class="text-white">${priceShare}%</strong> of the net shock while physical starts adjust by <strong class="text-white">${dQPct >= 0 ? '+' : ''}${dQPct.toFixed(1)}%</strong>.`;
+      }
+
+      box.innerHTML = `${demandComment} ${supplyComment}`;
+    }
+
+    // =========================================================================
+    // 4. RESPONSIVE HTML5 CANVAS RENDERING ENGINE
+    // =========================================================================
+
+    const canvas = document.getElementById('marketCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function getChartMetrics() {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      if (canvas.width !== Math.round(rect.width * dpr) || canvas.height !== Math.round(rect.height * dpr)) {
+        canvas.width = Math.round(rect.width * dpr);
+        canvas.height = Math.round(rect.height * dpr);
+      }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const pad = { top: 26, right: 28, bottom: 48, left: 62 };
+      const plotW = rect.width - pad.left - pad.right;
+      const plotH = rect.height - pad.top - pad.bottom;
+
+      return { width: rect.width, height: rect.height, pad, plotW, plotH };
+    }
+
+    function qToX(Q, m) {
+      return m.pad.left + ((Q - Q_MIN) / (Q_MAX - Q_MIN)) * m.plotW;
+    }
+
+    function xToQ(x, m) {
+      return Q_MIN + ((x - m.pad.left) / m.plotW) * (Q_MAX - Q_MIN);
+    }
+
+    function pToY(P, m) {
+      return m.pad.top + m.plotH - ((P - P_MIN) / (P_MAX - P_MIN)) * m.plotH;
+    }
+
+    function drawChart() {
+      const m = getChartMetrics();
+      ctx.clearRect(0, 0, m.width, m.height);
+
+      // Background subtle fill
+      ctx.fillStyle = '#090d16';
+      ctx.fillRect(0, 0, m.width, m.height);
+
+      // Optional Structural Economic Zones
+      const showZones = document.getElementById('toggle-zones').checked;
+      if (showZones) {
+        drawStructuralZones(m);
+      }
+
+      // Draw Gridlines & Axes
+      drawGridAndAxes(m);
+
+      // Clip curves inside plot area
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(m.pad.left, m.pad.top, m.plotW, m.plotH);
+      ctx.clip();
+
+      // 1. Baseline Ghost Curves (D0 & S0)
+      drawCurve(BASELINE_PARAMS, getDemandPrice, 'rgba(56, 189, 248, 0.25)', 1.75, [5, 5], m);
+      drawCurve(BASELINE_PARAMS, getSupplyPrice, 'rgba(245, 158, 11, 0.25)', 1.75, [5, 5], m);
+
+      // 2. Active Curves (D1 & S1)
+      drawCurve(state, getDemandPrice, '#38bdf8', 3, [], m);
+      drawCurve(state, getSupplyPrice, '#f59e0b', 3, [], m);
+
+      // 3. Curve End Labels
+      drawCurveLabels(m);
+
+      // 4. Equilibrium Drop-lines & Points (E0 and E1)
+      drawEquilibriumMarkers(m);
+
+      // 5. Interactive Hover Crosshair
+      if (hoverQ !== null && hoverQ >= Q_MIN && hoverQ <= Q_MAX) {
+        const hx = qToX(hoverQ, m);
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(hx, m.pad.top);
+        ctx.lineTo(hx, m.pad.top + m.plotH);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        const dP = getDemandPrice(hoverQ, state);
+        const sP = getSupplyPrice(hoverQ, state);
+
+        if (dP >= P_MIN && dP <= P_MAX) {
+          ctx.fillStyle = '#38bdf8';
+          ctx.beginPath();
+          ctx.arc(hx, pToY(dP, m), 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        if (sP >= P_MIN && sP <= P_MAX) {
+          ctx.fillStyle = '#f59e0b';
+          ctx.beginPath();
+          ctx.arc(hx, pToY(sP, m), 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      ctx.restore();
+    }
+
+    function drawStructuralZones(m) {
+      // Left zone: Inelastic Baseline Shelter Floor (Q < 1.10M)
+      const xKink = qToX(1.10, m);
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.04)';
+      ctx.fillRect(m.pad.left, m.pad.top, xKink - m.pad.left, m.plotH);
+
+      // Right zone: Construction Bottleneck / Capacity Crunch Zone (Q > bottleneckThreshold)
+      const bottleneckThreshold = 1.68 - (state.bottleneck / 100) * 0.42;
+      const xBottle = Math.max(m.pad.left, Math.min(m.pad.left + m.plotW, qToX(bottleneckThreshold, m)));
+      ctx.fillStyle = 'rgba(245, 158, 11, 0.05)';
+      ctx.fillRect(xBottle, m.pad.top, (m.pad.left + m.plotW) - xBottle, m.plotH);
+
+      // Subtle top labels for zones
+      ctx.font = '500 10px Inter, sans-serif';
+      ctx.fillStyle = 'rgba(125, 211, 252, 0.55)';
+      ctx.textAlign = 'left';
+      if (xKink - m.pad.left > 75) {
+        ctx.fillText('BASELINE SHELTER FLOOR', m.pad.left + 8, m.pad.top + 15);
+      }
+
+      ctx.fillStyle = 'rgba(251, 191, 36, 0.6)';
+      ctx.textAlign = 'right';
+      if ((m.pad.left + m.plotW) - xBottle > 85) {
+        ctx.fillText('SUPPLY BOTTLENECK ZONE', m.pad.left + m.plotW - 8, m.pad.top + 15);
+      }
+    }
+
+    function drawGridAndAxes(m) {
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      ctx.font = '11px "JetBrains Mono", monospace';
+      ctx.fillStyle = '#64748b';
+
+      // Horizontal Price Gridlines ($250k to $650k every $50k)
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      for (let p = 250; p <= 650; p += 50) {
+        const y = pToY(p, m);
+        ctx.beginPath();
+        ctx.moveTo(m.pad.left, y);
+        ctx.lineTo(m.pad.left + m.plotW, y);
+        ctx.stroke();
+
+        ctx.fillText(`$${p}k`, m.pad.left - 8, y);
+      }
+
+      // Vertical Quantity Gridlines (0.6M to 2.4M every 0.2M)
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      for (let q = 0.6; q <= 2.41; q += 0.2) {
+        const x = qToX(q, m);
+        ctx.beginPath();
+        ctx.moveTo(x, m.pad.top);
+        ctx.lineTo(x, m.pad.top + m.plotH);
+        ctx.stroke();
+
+        ctx.fillText(`${q.toFixed(1)}M`, x, m.pad.top + m.plotH + 8);
+      }
+
+      // Main Axis Borders
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(m.pad.left, m.pad.top);
+      ctx.lineTo(m.pad.left, m.pad.top + m.plotH);
+      ctx.lineTo(m.pad.left + m.plotW, m.pad.top + m.plotH);
+      ctx.stroke();
+
+      // Axis Titles
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '600 11px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('New Privately Owned Housing Units (Millions, SAAR)', m.pad.left + m.plotW / 2, m.height - 14);
+
+      ctx.save();
+      ctx.translate(16, m.pad.top + m.plotH / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText('Real Median Home Price ($ Thousands)', 0, 0);
+      ctx.restore();
+    }
+
+    function drawCurve(params, priceFn, color, lineWidth, dash, m) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+      ctx.setLineDash(dash);
+      ctx.beginPath();
+
+      const steps = 160;
+      let started = false;
+      for (let i = 0; i <= steps; i++) {
+        const q = Q_MIN + (i / steps) * (Q_MAX - Q_MIN);
+        const p = priceFn(q, params);
+        const x = qToX(q, m);
+        const y = pToY(p, m);
+
+        if (!started) {
+          ctx.moveTo(x, y);
+          started = true;
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    function drawCurveLabels(m) {
+      ctx.font = '700 12px Inter, sans-serif';
+
+      // Position D1 label near right side of demand curve inside bounds
+      for (let q = 2.28; q >= 0.70; q -= 0.05) {
+        const p = getDemandPrice(q, state);
+        if (p >= P_MIN + 22 && p <= P_MAX - 22) {
+          ctx.fillStyle = '#38bdf8';
+          ctx.textAlign = 'left';
+          ctx.fillText('D₁', qToX(q, m) + 6, pToY(p, m));
+          break;
+        }
+      }
+
+      // Position S1 label near upper section of supply curve inside bounds
+      for (let q = 2.25; q >= 0.65; q -= 0.04) {
+        const p = getSupplyPrice(q, state);
+        if (p >= P_MIN + 25 && p <= P_MAX - 20) {
+          ctx.fillStyle = '#f59e0b';
+          ctx.textAlign = 'right';
+          ctx.fillText('S₁', qToX(q, m) - 8, pToY(p, m) - 6);
+          break;
+        }
+      }
+    }
+
+    function drawEquilibriumMarkers(m) {
+      const x0 = qToX(baselineEq.Q, m);
+      const y0 = pToY(baselineEq.P, m);
+      const x1 = qToX(currentEq.Q, m);
+      const y1 = pToY(currentEq.P, m);
+
+      const moved = Math.hypot(x1 - x0, y1 - y0) > 4;
+
+      // Baseline E0 marker & dashed drop lines
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(m.pad.left, y0);
+      ctx.lineTo(x0, y0);
+      ctx.lineTo(x0, m.pad.top + m.plotH);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      if (moved) {
+        // Draw vector arrow from E0 to E1
+        ctx.strokeStyle = 'rgba(226, 232, 240, 0.55)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(x1, y1);
+        ctx.stroke();
+
+        // E0 ghost dot
+        ctx.fillStyle = '#0f172a';
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x0, y0, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '600 11px "JetBrains Mono", monospace';
+        ctx.textAlign = x0 < x1 ? 'right' : 'left';
+        ctx.fillText(`E₀ ($${Math.round(baselineEq.P)}k)`, x0 + (x0 < x1 ? -8 : 8), y0 + 12);
+      }
+
+      // Active E1 drop lines
+      ctx.strokeStyle = 'rgba(52, 211, 153, 0.55)';
+      ctx.lineWidth = 1.25;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(m.pad.left, y1);
+      ctx.lineTo(x1, y1);
+      ctx.lineTo(x1, m.pad.top + m.plotH);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Highlight ticks on axes for P* and Q*
+      ctx.fillStyle = '#10b981';
+      ctx.beginPath();
+      ctx.arc(m.pad.left, y1, 3.5, 0, Math.PI * 2);
+      ctx.arc(x1, m.pad.top + m.plotH, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Active E1 glowing point
+      ctx.fillStyle = 'rgba(16, 185, 129, 0.25)';
+      ctx.beginPath();
+      ctx.arc(x1, y1, 12, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#10b981';
+      ctx.strokeStyle = '#090d16';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x1, y1, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Callout Pill for E1
+      const labelText = `E₁: ${currentEq.Q.toFixed(2)}M @ $${Math.round(currentEq.P)}k`;
+      ctx.font = '600 11px "JetBrains Mono", monospace';
+      const textW = ctx.measureText(labelText).width;
+      const boxW = textW + 14;
+      const boxH = 22;
+
+      let boxX = x1 + 10;
+      let boxY = y1 - 28;
+      if (boxX + boxW > m.pad.left + m.plotW - 4) boxX = x1 - boxW - 10;
+      if (boxY < m.pad.top + 4) boxY = y1 + 10;
+
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+      ctx.strokeStyle = 'rgba(16, 185, 129, 0.65)';
+      ctx.lineWidth = 1;
+      roundRect(ctx, boxX, boxY, boxW, boxH, 5);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#ecfdf5';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(labelText, boxX + 7, boxY + boxH / 2);
+    }
+
+    function roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    // =========================================================================
+    // 5. POINTER & TOUCH INTERACTIVITY
+    // =========================================================================
+
+    function handlePointerMove(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+      const m = getChartMetrics();
+
+      if (x >= m.pad.left && x <= m.pad.left + m.plotW && y >= m.pad.top && y <= m.pad.top + m.plotH) {
+        hoverQ = xToQ(x, m);
+        const dP = getDemandPrice(hoverQ, state);
+        const sP = getSupplyPrice(hoverQ, state);
+
+        const tooltip = document.getElementById('chart-tooltip');
+        tooltip.classList.remove('hidden');
+        document.getElementById('tt-coords').textContent = `Volume: ${hoverQ.toFixed(2)}M SAAR`;
+        document.getElementById('tt-demand').textContent = `Buyer Willingness (D₁): $${Math.round(dP)}k`;
+        document.getElementById('tt-supply').textContent = `Builder Marginal Cost (S₁): $${Math.round(sP)}k`;
+
+        // Keep tooltip inside canvas wrapper
+        const ttW = 195;
+        const leftPos = (x + ttW + 16 > rect.width) ? (x - ttW - 12) : (x + 14);
+        const topPos = Math.max(8, Math.min(rect.height - 75, y - 20));
+        tooltip.style.left = `${leftPos}px`;
+        tooltip.style.top = `${topPos}px`;
+      } else {
+        hideTooltip();
+      }
+      drawChart();
+    }
+
+    function hideTooltip() {
+      hoverQ = null;
+      document.getElementById('chart-tooltip').classList.add('hidden');
+      drawChart();
+    }
+
+    canvas.addEventListener('mousemove', (e) => handlePointerMove(e.clientX, e.clientY));
+    canvas.addEventListener('mouseleave', hideTooltip);
+
+    canvas.addEventListener('touchstart', (e) => {
+      if (e.touches.length > 0) {
+        handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }, { passive: true });
+
+    canvas.addEventListener('touchmove', (e) => {
+      if (e.touches.length > 0) {
+        handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }, { passive: true });
+
+    canvas.addEventListener('touchend', hideTooltip);
+
+    window.addEventListener('resize', () => {
+      drawChart();
+    });
+
+    // Initialize on window load
+    window.onload = function () {
+      updateModel();
+    };
+  </script>
+</body>
+</html>

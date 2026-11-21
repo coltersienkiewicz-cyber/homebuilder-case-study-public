@@ -1,0 +1,25 @@
+# macOS / editor junk
+.DS_Store
+*~
+~$*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# matplotlib font cache written by the chart scripts
+.mplconfig/
+
+# LaTeX build files
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+
+# Generated public copy (built by make_public_copy.py; becomes its own repo)
+PUBLIC_VERSION/

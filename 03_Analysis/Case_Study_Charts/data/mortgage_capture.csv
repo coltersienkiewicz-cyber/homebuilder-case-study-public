@@ -1,0 +1,9 @@
+company,period_end,asp_usd,capture_pct,rate_basis,denominator,capture_ex_cash_pct,definition
+D.R. Horton,2026-09-30,363600,81.0,homes,all_closings,,DHI Mortgage provided financing services for 81% of homebuilding closings
+Lennar,2025-11-30,391000,84.0,homes,financed,,84% of homebuyers who obtained mortgage financing in Lennar Mortgage service areas received Lennar financing; conditional on obtaining financing
+PulteGroup,2025-12-31,566000,84.7,homes,financed,,Company-defined capture rate: originations divided by homebuilding loan opportunities excluding cash closings
+NVR,2025-12-31,460600,86.0,homes,undisclosed,,Company-reported mortgage capture rate; denominator is not harmonized here
+KB Home,2025-11-30,481400,85.0,homes,financed,,85% of buyers financing purchases used KBHS; conditional on using mortgage financing
+Toll Brothers,2025-10-31,960200,43.4,dollars,dollars,,"TBMC-funded gross settlement amount divided by total gross settlement amount; value-based, not a share of homes"
+Century Communities,2025-12-31,378000,84.0,homes,undisclosed,,Company-reported capture rate of Century homebuyers; denominator is not harmonized here
+Sekisui House U.S.,2025-12-31,563800,80.0,homes,all_closings,87.0,Capture rate as a share of all homes delivered; separate ex-cash rate was 87%

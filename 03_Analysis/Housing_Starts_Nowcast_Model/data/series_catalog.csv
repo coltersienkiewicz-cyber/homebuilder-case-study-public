@@ -1,0 +1,19 @@
+# Series metadata for housing pipeline nowcast.
+# Source for all listed FRED series: U.S. Census Bureau / U.S. Department of Housing and Urban Development, New Residential Construction; distributed by FRED.
+# FRED series pages: https://fred.stlouisfed.org/series/{series_id}
+series_id,stage,description,frequency,units,seasonal_adjustment,role
+PERMIT,permits,New privately-owned housing units authorized in permit-issuing places: total,Monthly,Thousands of Units,Seasonally Adjusted Annual Rate,flow
+PERMIT1,permits,New privately-owned housing units authorized in permit-issuing places: single-family,Monthly,Thousands of Units,Seasonally Adjusted Annual Rate,flow
+PERMITNSA,permits,New privately-owned housing units authorized in permit-issuing places: total,Monthly,Thousands of Units,Not Seasonally Adjusted,flow
+HOUST,starts,New privately-owned housing units started: total,Monthly,Thousands of Units,Seasonally Adjusted Annual Rate,flow
+HOUST1F,starts,New privately-owned housing units started: single-family,Monthly,Thousands of Units,Seasonally Adjusted Annual Rate,flow
+HOUSTNSA,starts,New privately-owned housing units started: total,Monthly,Thousands of Units,Not Seasonally Adjusted,flow
+UNDCONTSA,under_construction,New privately-owned housing units under construction: total,Monthly,Thousands of Units,Seasonally Adjusted,stock
+UNDCON1FUSA,under_construction,New privately-owned housing units under construction: single-family,Monthly,Thousands of Units,Seasonally Adjusted,stock
+UNDCONTSNSA,under_construction,New privately-owned housing units under construction: total,Monthly,Thousands of Units,Not Seasonally Adjusted,stock
+AUTHNOTT,authorized_not_started,New privately-owned housing units authorized but not started: total,Monthly,Thousands of Units,Not Seasonally Adjusted,stock
+AUTHNOTTSA,authorized_not_started,New privately-owned housing units authorized but not started: total,Monthly,Thousands of Units,Seasonally Adjusted,stock
+AUTHNOT1U,authorized_not_started,New privately-owned housing units authorized but not started: single-family,Monthly,Thousands of Units,Not Seasonally Adjusted,stock
+AUTHNOT1USA,authorized_not_started,New privately-owned housing units authorized but not started: single-family,Monthly,Thousands of Units,Seasonally Adjusted,stock
+COMPUTSA,completions,New privately-owned housing units completed: total,Monthly,Thousands of Units,Seasonally Adjusted Annual Rate,flow
+COMPU1FUSA,completions,New privately-owned housing units completed: single-family,Monthly,Thousands of Units,Seasonally Adjusted Annual Rate,flow

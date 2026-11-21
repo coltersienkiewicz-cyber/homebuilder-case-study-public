@@ -1,0 +1,14 @@
+# Reported home revenue ($M) by Builder 100 edition year (each edition ranks the prior year's closings).
+# Source: Builder 100 rankings (Pro Builder / BuilderOnline), via Builder_100_2022_2026.xlsx "Master Comparison (2022-2026)".
+# segment = primary buyer focus per each builder's 10-K Item 1: luxury / move_up (move-up or mixed) / entry (entry-level, first-time).
+company,segment,2022,2023,2024,2025,2026
+Toll Brothers,luxury,8431,9711,9866,10563,10842
+Taylor Morrison,move_up,7270,7889,7200,7800,7755
+NVR,move_up,8701,10326,9314,10292,10094
+PulteGroup,move_up,13376,15774,15598,17319,16744
+Lennar,entry,25348,31779,32459,33778,32097
+Century Communities,entry,4216,4393,3604,4398,4118
+D.R. Horton,entry,27932,32668,32295,33832,30877
+Meritage Homes,entry,5094,6207,6056,6342,5764
+KB Home,entry,5705,6880,6381,6902,6212
+LGI Homes,entry,3050,2333,2358,2203,1706

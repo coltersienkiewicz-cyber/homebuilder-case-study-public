@@ -1,0 +1,272 @@
+% ============================================================================
+% MI Data -- Data Research Case Study (Homebuilder Industry) -- LaTeX TEMPLATE
+% ============================================================================
+% HOW TO USE THIS FILE
+%  - This is a two-file Overleaf project (the standard \input{} split):
+%    THIS file (MI_Data_Case_Study_Main.tex) has the \documentclass,
+%    preamble, and Sections 1-5 (the 3-page case study body); MI_Data_Case_Study_Sources_and_AI_Disclosure.tex
+%    is a bare fragment (no preamble of its own) with Sources & References
+%    and the AI Use Disclosure, pulled in via
+%    \input{MI_Data_Case_Study_Sources_and_AI_Disclosure} right before
+%    \end{document}. Both files must stay in the same folder/Overleaf
+%    project. Compiling this file compiles the whole thing as one PDF.
+%  - Citations are hyperlinked superscript numbers, not inline "Source:"
+%    text: \srcnum{N} in the body links to \srcitem{N}{...} in MI_Data_Case_Study_Sources_and_AI_Disclosure.tex.
+%    To add a new source as you integrate your own research, see the
+%    instructions at the top of MI_Data_Case_Study_Sources_and_AI_Disclosure.tex.
+%  - Compile with pdflatex (or upload to Overleaf -- no special packages
+%    beyond a standard TeXLive "full"/Overleaf install: multicol, booktabs,
+%    caption, titlesec, enumitem, hyperref).
+%  - Research content in Sections 1-3 is filled in from the project's prior
+%    cited research (05_Research_Notes_and_AI_Chat_Logs/ + 10-Ks + Census/NAHB/Fed/NAR/HMDA/Zillow
+%    public sources). Re-verify any figure you plan to rely on before
+%    submitting -- some are dated and markets move.
+%  - Section 4 (the Census starts nowcast) is filled in with the actual
+%    cohort-Markov-chain methodology, validation, point estimate, and chart,
+%    from 03_Analysis/Housing_Starts_Nowcast_Model/scripts/cohort_markov_nowcast.py and its
+%    companion scripts/plot_nowcast_chart.py (writes
+%    03_Analysis/Case_Study_Charts/outputs/nowcast-starts-backtest.png). One \todo{} remains:
+%    re-run plot_nowcast_chart.py right before submitting -- it regenerates
+%    both the chart and the underlying CSV/stats -- and refresh the prose
+%    numbers by hand if Census has published a newer month by then: the
+%    headline nowcast, newest-permit vs. older-backlog split, m/m and y/y changes,
+%    backtest MAE / average miss, conversion shares (~79% MF, ~103% SF),
+%    stock-check gaps (ANS +16%, UC -10%), and the +/-MAE in the caption.
+%    The model now scales permits by a trailing 36-month starts/permits
+%    ratio per segment (see 03_Analysis/Housing_Starts_Nowcast_Model/research.md).
+%  - Page budget: the two largest company-comparison tables (closings/ASP/
+%    margin; ASP/mortgage-capture) were moved out already -- keep only the
+%    numbers in the Excel workbook deliverable and cite it from the chart
+%    caption, as done here, rather than re-adding the tables. The former
+%    separate "KPIs" and "Public Data Sources" tables were also merged into
+%    one table (they were restating the same source names twice); secondary
+%    data types are now a tight bullet list, not a second table. Re-check
+%    page count after inserting the nowcast chart; if still over 3 pages,
+%    the next cuts (in order of least information lost) are: (a) drop the
+%    supplier waterfall chart and keep its NAHB cost-stack table instead,
+%    (b) tighten Section 1's prose bullets, (c) shrink remaining
+%    \normalsize tables to \footnotesize (most already are), (d) shorten
+%    the Macro Backdrop paragraph or fold it into Section 1's intro line.
+% ============================================================================
+
+\documentclass[10pt]{article}
+
+\usepackage[margin=0.62in]{geometry}
+\usepackage[T1]{fontenc}
+% Sans-serif throughout: Helvetica (helvet = Nimbus Sans clone). The charts are drawn
+% in Arial, which has the same metrics, at their printed size, so text matches.
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{multicol}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{amsmath}
+\usepackage[skip=3pt]{parskip}
+\usepackage[hidelinks]{hyperref}
+\usepackage{xurl}  % lets long URLs in the sources list break at any character
+\urlstyle{same}  % URLs in the body font, not typewriter
+
+\graphicspath{{figures/}}  % charts are copied here by the chart scripts
+
+\definecolor{p72navy}{RGB}{21,38,66}
+\definecolor{p72gray}{RGB}{90,90,90}
+
+% ---- One type scale for the whole brief ----------------------------------
+%   Title 15pt | section 11.5pt | subsection 9.5pt | body 9pt
+%   captions, tables, notes 8pt | in-chart text 6.5-8pt (set in the chart scripts)
+\makeatletter
+\renewcommand\normalsize{\@setfontsize\normalsize{9}{10.8}%
+  \abovedisplayskip 6pt \belowdisplayskip 6pt \abovedisplayshortskip 3pt \belowdisplayshortskip 3pt}
+\renewcommand\small{\@setfontsize\small{8.5}{10.5}}
+\renewcommand\footnotesize{\@setfontsize\footnotesize{8}{9.5}}
+\renewcommand\scriptsize{\@setfontsize\scriptsize{7}{8.5}}
+\renewcommand\large{\@setfontsize\large{11.5}{13.5}}
+\renewcommand\Large{\@setfontsize\Large{15}{18}}
+\makeatother
+\normalsize
+
+\titleformat{\section}{\normalfont\large\bfseries\color{p72navy}}{}{0pt}{}
+\titlespacing*{\section}{0pt}{6pt}{2pt}
+\titleformat{\subsection}{\normalfont\fontsize{9.5}{11.5}\selectfont\bfseries\color{p72navy}}{}{0pt}{}
+\titlespacing*{\subsection}{0pt}{4pt}{1pt}
+
+\captionsetup{font=footnotesize, labelfont=bf, labelsep=period, skip=2pt,
+              justification=justified, singlelinecheck=false}
+% Column figure: chart + caption locked together so a column break can't split them.
+% Charts are drawn 3.4in wide (one column), so they are included at 1:1 scale.
+\newcommand{\colfig}[3]{\par\smallskip\noindent\begin{minipage}{\linewidth}\centering
+  \includegraphics[width=#1]{#2}\captionof{figure}{#3}\end{minipage}\par\smallskip}
+
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+% Hyperlinked numbered citation, linking to \srcitem{N}{...} in MI_Data_Case_Study_Sources_and_AI_Disclosure.tex (back matter).
+\DeclareRobustCommand{\srcnum}[1]{\textsuperscript{\hyperlink{src#1}{[#1]}}}
+% One entry in the back-matter source list; N must match a \srcnum{N} call above.
+\newcommand{\srcitem}[2]{\item \phantomsection\hypertarget{src#1}{}#1.~#2}
+
+\setlist[itemize]{topsep=1pt,itemsep=1pt,parsep=0pt,leftmargin=*}
+\setlength{\columnsep}{16pt}
+\raggedcolumns  % columns end where the text ends instead of stretching blank space between paragraphs
+
+\pagestyle{empty}
+
+\begin{document}
+
+% ---------------------------------------------------------------- Title ---
+\begin{center}
+  {\Large\bfseries\color{p72navy} Point72 MI Case Study: U.S. Homebuilder Industry}\\[3pt]
+  {\normalsize Colter Sienkiewicz \quad\textbar\quad 11/21/2026}
+\end{center}
+\vspace{-4pt}
+
+{\color{p72gray}
+In this brief I map who builders compete with, who supplies them and who buys their homes; lay out the industry's key numbers and the public data that tracks them; and nowcast November's Census housing-starts release. Everything comes from public filings and government or industry data, cited throughout and listed at the end.}
+
+% Acronym key: kept to one compact run-in block in 6.5pt gray.
+\par\vspace{2pt}
+{\fontsize{6.5}{8}\selectfont\color{p72gray}\noindent
+\textbf{Key:}
+\textbf{ASP} average selling price \textperiodcentered{}
+\textbf{SAAR} seasonally adjusted annual rate \textperiodcentered{}
+\textbf{KPI} key performance indicator \textperiodcentered{}
+\textbf{FY} fiscal year \textperiodcentered{}
+\textbf{CLD} construction \& land development (loans) \textperiodcentered{}
+\textbf{DTI} debt-to-income \textperiodcentered{}
+\textbf{FHA} Federal Housing Administration \textperiodcentered{}
+\textbf{NAHB} National Association of Home Builders \textperiodcentered{}
+\textbf{HMI} NAHB/Wells Fargo Housing Market Index \textperiodcentered{}
+\textbf{NAR} National Association of Realtors \textperiodcentered{}
+\textbf{JCHS} Harvard Joint Center for Housing Studies \textperiodcentered{}
+\textbf{FRED} Federal Reserve Economic Data \textperiodcentered{}
+\textbf{SLOOS} Fed Senior Loan Officer Opinion Survey \textperiodcentered{}
+\textbf{PMMS} Freddie Mac Primary Mortgage Market Survey \textperiodcentered{}
+\textbf{MBA} Mortgage Bankers Association \textperiodcentered{}
+\textbf{HMDA} Home Mortgage Disclosure Act \textperiodcentered{}
+\textbf{CFPB} Consumer Financial Protection Bureau \textperiodcentered{}
+\textbf{FFIEC} Federal Financial Institutions Examination Council \textperiodcentered{}
+\textbf{BLS} Bureau of Labor Statistics \textperiodcentered{}
+\textbf{PPI} producer price index \textperiodcentered{}
+\textbf{QCEW} Quarterly Census of Employment and Wages \textperiodcentered{}
+\textbf{NAICS} North American Industry Classification System \textperiodcentered{}
+\textbf{BPS} Building Permits Survey \textperiodcentered{}
+\textbf{SOI} IRS Statistics of Income. Builder tickers are keyed under Figure~1.\par}
+
+\begin{multicols}{2}
+
+% ======================================================================
+\section{Industry Map: Competitors, Suppliers \& Customers}
+
+\subsection{Competitors}
+\begin{itemize}
+\item \textbf{Public national builders.} Only 20 of the 100 largest builders are public, but they lead the industry. D.R.~Horton (\#1, 87,168 closings) and Lennar (\#2, 82,583) dominate the affordable, entry-level end; PulteGroup and NVR are smaller but earn higher margins; Toll Brothers leads luxury.\srcnum{4} The biggest are getting bigger: the top 100 builders now sell about half of all new single-family homes, up from just over a third twenty years ago, and almost two-thirds of that gain went to D.R.~Horton and Lennar.\srcnum{27}
+\item \textbf{Large private builders.} Firms like Ashton Woods (\#11, 10,067 closings) and Clayton Properties (\#12, 9,953) compete head-to-head with the public builders but don't publish financials.\srcnum{4}
+\item \textbf{Small builders and custom homes.} The other half of new homes come from thousands of small local builders and from households that hire a contractor to build on their own land -- 131,000 of those contractor-built starts in 2025, about 14\% of single-family starts.\srcnum{6}\srcnum{16}
+\item \textbf{Substitutes.} A new home also competes with existing homes for sale -- selling at a 3.75 million annual pace in October 2026, at a \$416,700 median with 5.1 months of supply\srcnum{7} -- and with renting, which looks better when buying is expensive and rents are flat.\srcnum{29}
+\end{itemize}
+
+\colfig{3.4in}{competitor-scale-price-margin.png}{Each builder's annual closings vs.\ average selling price; bubble size is gross margin. Colors match the buyer segments in Figure~3.\srcnum{1} Fiscal years differ (D.R.~Horton FY26, others FY25). Tickers: DHI D.R.~Horton, LEN Lennar, PHM PulteGroup, NVR NVR, MTH Meritage, TMHC Taylor Morrison, KBH KB Home, TOL Toll Brothers, CCS Century, SHU Sekisui House U.S.}
+
+\subsection{Suppliers}
+Builders work mostly as general contractors, buying from four groups: (1) \textit{land developers}, such as Forestar (62\% owned by D.R.~Horton), which sold 13,545 finished lots in FY26 and controlled 84,400 more across 65 markets\srcnum{2}; (2) \textit{materials suppliers}, such as Builders FirstSource (\$15.19B of FY25 sales, about a quarter of it lumber)\srcnum{3}; (3) \textit{trade subcontractors} -- framing, concrete, electrical, plumbing, HVAC, drywall, roofing -- who do nearly all the hands-on work\srcnum{1}; and (4) \textit{lenders and utilities}, including the construction and land-development (CLD) loans that fund projects.
+
+Land is where builder and supplier blur. NVR and Lennar hold almost all their lots through purchase options (100\% and 98.1\%) instead of owning them; Meritage and Sekisui House U.S.\ option only 28.0\% and 18.4\%; D.R.~Horton sits in between at 77.1\%.\srcnum{1}
+
+Per NAHB's 2024 cost study, construction (labor and materials) is 64.4\% of a new home's price (up from 60.8\% in 2022), the finished lot 13.7\% (down from 17.8\%), and builder profit 11.0\%.\srcnum{8} Supply is tight: in 2025, 64\% of builders said lots were scarce (26\% ``very''), and 67\% couldn't find enough prime lots\srcnum{9}; regulation adds about \$131,734 (26\%) to the price of a new home, \$46,795 of it during land development\srcnum{10}; and banks kept tightening construction-loan standards in October 2026, which hits smaller private builders hardest.\srcnum{12}
+
+\colfig{3.4in}{supplier-cost-stack-land-control.png}{Where a new home's sale price goes (left, NAHB 2024) and building-material prices vs.\ home prices, both indexed to 2019 (right).\srcnum{8}\srcnum{16}}
+
+\subsection{Customers}
+I separate \textit{who buys} from \textit{how they pay}: builders' in-house mortgage lenders, like DHI Mortgage and Pulte Mortgage, are how buyers pay, not who buys.\srcnum{1}
+
+\textbf{Who buys.} PulteGroup's 2025 buyers were 38\% first-time, 40\% move-up and 22\% retirees (Del Webb, 55+). D.R.~Horton mostly sells \$200K--\$700K homes of 1,000--3,000 sq.\ ft., and in FY26 also sold 2,073 single-family rental homes and 2,737 apartment units to investors.\srcnum{1}
+
+\textbf{How they pay.} In 2025, 73\% of new homes were bought with a conventional mortgage, 15\% with FHA loans, 5\% with VA loans and 7\% with cash. The median new home sold for \$417,400, and homes are getting smaller to stay affordable: the average shrank from 2,724 sq.\ ft.\ in 2015 to 2,409 in 2025.\srcnum{6} Prices vary widely by region, from a \$372,800 median in the South to \$750,800 in the Northeast.\srcnum{6} Qualifying is the hurdle: 9.4\% of home-purchase mortgage applications were denied in 2023, with too much debt relative to income among the main reasons\srcnum{13} -- which is why the big entry-level builders use their own lenders to buy down rates. Wealthier buyers don't need that help: about 25\% of Toll Brothers' buyers and 21\% of PulteGroup's paid all cash\srcnum{1}, versus 7\% nationally.\srcnum{6}
+
+\textbf{Where demand is growing.} The South grew +0.9\% in the year to July 2025 (down from +1.4\%), versus just +0.2\% in the Northeast. The fastest-growing states were South Carolina (+1.5\%) and Idaho (+1.4\%), driven by people moving in from other states\srcnum{14} -- pulling entry-level and move-up demand toward the Sunbelt and Mountain West.
+
+\colfig{2in}{customer-luxury-vs-entry.png}{Home revenue change in the latest year (2025 vs.\ 2026 Builder 100, each covering the prior year).\srcnum{4} Toll Brothers is the only large builder still growing; move-up builders are flat to slightly down; every entry-level builder fell, led by LGI Homes ($-23\%$). Segments follow each builder's stated buyer focus in its 10-K.\srcnum{1}}
+
+% ======================================================================
+\section{Macro Backdrop: Supply \& Demand}
+Zooming out from the month-to-month noise in the FRED data, the number of new homes started each month is a tug-of-war between demand and supply. Because the industry is so fragmented\srcnum{5}\srcnum{27}, I treat it as competitive: builders take the market price rather than set it. Demand rises with consumer confidence, lower interest rates, real wage growth and new household formation. Right now it is falling: population growth in the fastest-growing states is slowing\srcnum{14}, rents are flat (+0.1\% year over year in October 2026)\srcnum{29}, and borrowing is still expensive (a 7.28\% 30-year mortgage rate on November 19).\srcnum{18} Buyers can switch to renting quickly; builders can't change course that fast. Supply shrinks when material costs, tariffs, land, permitting and labor get harder or pricier. Today it is constrained: most builders are short of buildable lots\srcnum{9} and banks are pulling back on construction and land loans\srcnum{12}, even though material costs have been fairly steady.\srcnum{16} Monthly starts have moved sideways for about two years, and my model says next month's number is mostly homes already in the pipeline (Section~4). Put together, the market is leveling off. (I built a simple interactive supply-and-demand simulator to play with these shifts; it is included as a separate file.\srcnum{28})
+
+Writing this on November 21 from Montana, some 2,000 miles from Wall Street, I am watching the stock market slide: on November 20 the S\&P 500 and Dow closed more than 10\% below their records, and the Nasdaq erased its 2026 gains as investors questioned the AI investment boom.\srcnum{31} That sell-off will test whether the Fed stays focused on inflation or eases to support an AI-driven economy. For now it leans toward fighting inflation: minutes from its October meeting, where it held rates at 3.75--4.00\%, show almost all officials expect further hikes and see AI spending as an inflation risk.\srcnum{32} Either way, the answer flows straight through mortgage rates to new-home demand.
+
+The midterms hand Democrats both chambers of Congress in January 2027, though that alone doesn't change existing tariffs.\srcnum{33} Any shift in tariffs or energy prices would flow through to builders' costs; builders estimated tariffs already added about \$10,900 per home in 2025.\srcnum{34}
+
+Finally, ``leveling off'' is a national generalization. Demand for luxury homes is holding up better than the entry level -- the K-shaped economy at work -- and it shows in builder results: of the ten large builders in Figure~3, only Toll Brothers, the luxury specialist, grew revenue last year.\srcnum{4}
+
+\end{multicols}
+
+% ======================================================================
+\section{Key KPIs, What Drives Them \& the Public Data That Tracks Them}
+{\footnotesize
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{6.4cm}>{\raggedright\arraybackslash}p{8.0cm}@{}}
+\toprule
+\textbf{KPI} & \textbf{Biggest drivers} & \textbf{Public data that tracks it} \\
+\midrule
+Net orders; orders per community; cancellations &
+Buyer traffic, monthly payment, competing resale homes, number of communities, incentives &
+NAHB HMI\srcnum{11}; Freddie Mac PMMS \& MBA builder mortgage applications\srcnum{18}; Lennar/PulteGroup disclosures\srcnum{1} \\
+Backlog; closings; build time &
+Earlier orders, cancellations, unsold inventory, crew and material availability, permitting &
+D.R.~Horton 10-K\srcnum{1}; Census construction-time tables\srcnum{17}; BLS job openings\srcnum{19} \\
+ASP; incentives; gross margin &
+Mix of buyers, products and regions; discounts and rate buydowns; cost per home &
+Lennar 10-K\srcnum{1}; Census new-home sales\srcnum{15}; BLS producer prices via FRED\srcnum{16}; BLS wages\srcnum{19} \\
+Lots owned vs.\ optioned &
+Lot availability, land options, financing cost, permitting delays &
+Lennar/PulteGroup 10-Ks\srcnum{1}; Forestar\srcnum{2}; Fed SLOOS\srcnum{12} \\
+U.S.\ housing starts &
+Permits issued, builder capacity, financing, weather &
+Census construction data\srcnum{15}; FRED permitted-not-started\srcnum{16}; NAHB multifamily survey\srcnum{11}; NOAA\srcnum{25} \\
+\bottomrule
+\end{tabular}
+
+\smallskip
+\textbf{Other data I would test next:} Google Trends searches as a read on buyer traffic, checked against the HMI's traffic gauge first\srcnum{24}\srcnum{26}; HMDA mortgage denials as a read on who can qualify\srcnum{13}; NAR, Zillow, Redfin and Realtor.com for the resale market\srcnum{7}\srcnum{23}; Census population and IRS migration data for where regional starts will outrun the nation\srcnum{14}\srcnum{20}; CDC birth and marriage data for household formation years ahead\srcnum{21}; and Census maps plus FEMA flood zones for where within a region building can happen.\srcnum{22}
+}
+
+\begin{multicols}{2}
+% ======================================================================
+\section{Nowcasting Census Housing Starts (Total Units)}
+
+\textbf{How I got here.} Year over year, housing starts give a clean read on the big picture -- rates, affordability, how builders feel -- but month to month the number bounces around and doesn't track that story. That's because a month's starts aren't a fresh read on demand; they're mostly homes already in the pipeline that happen to break ground that month. Census tracks that pipeline stage by stage\srcnum{15} -- permitted, permitted but not started, under construction, completed -- and publishes how long homes typically sit in each stage\srcnum{17}, so instead of guessing, I used those real percentages.
+
+\textbf{Model.} I split the pipeline into two streams -- single-family homes and buildings with 2+ units, since bigger buildings take much longer -- and treated each stage as a waiting room. Each month's permits enter as a group, and the model tracks how many homes from each group are still waiting and for how long. Census publishes timing only in rough buckets (``starts the same month, after 1, 2, 3, or 4+ months''), so I turned those into the monthly chance that a home still waiting starts now -- for a single-family home, 37\% in its first month and 54\% of those still waiting in its second -- and set the open-ended 4+ month tail so the average wait matches Census's reported average (1.4 months for single-family, 2.4 for 2+ units).\srcnum{17} A permit's first chance to start is the month after it is issued; allowing same-month starts fit the data worse. Homes that start move into ``under construction,'' which works the same way using Census's start-to-completion timing; everyone else gets a month older. Because the model remembers every group's age, I ran it from 1960 on actual permit history\srcnum{16}, so today's pipeline is built up from real data rather than assumed.
+
+\textbf{Validation.} The timing data only covers homes that \emph{do} start, so on its own the model assumes every permit becomes a start. In reality only about 79\% of 2+ unit permits do, while single-family starts run about 103\% of permits (some areas build without permits). Uncorrected, the model ran about 80,000 homes a year too high, so I scale each month's permits by the share that converted over the prior three years, using only data available at the time. Over the last two years the average miss is now near zero and the typical monthly miss is about 62,000 homes a year. Most of that is noise in the monthly number itself: Census's own 90\% error band on the monthly change is typically $\pm$10--14\% (January 2026's +7.2\% came with $\pm$13.7\%)\srcnum{15}; apartment buildings start in lumps, so 2+ unit starts are about 31\% of the total but drive about 58\% of its monthly swings\srcnum{16}\srcnum{30}; and weather and later revisions add more.\srcnum{25}\srcnum{30} Against a 3-month average of actual starts, the typical miss halves to about 31,000 and the correlation rises from 0.45 to 0.64 -- the model tracks the trend, which is what it's built to do. I flagged rather than tuned away one gap: the model's ``permitted but not started'' count runs about 16\% above Census's, and its under-construction count about 10\% below.
+
+\textbf{Result.} Based on the latest month (October 2026), the model expects November 2026 starts of about \textbf{1,274,000 homes} (annualized), all from permits already reported: about 418,000 from October's permits, which get their first chance to start in November, and 856,000 from older permits still waiting. No guess about November's own permits is needed. For comparison, October 2026 came in at \textbf{1,309,000} and November 2025 at \textbf{1,319,000}\srcnum{15}, so the model sees a modest dip ($-$2.7\% from October, $-$3.4\% from a year ago), consistent with permits drifting sideways and the pipeline slowly draining. \todo{re-run \texttt{plot\_nowcast\_chart.py} right before submitting -- it regenerates the chart below and these numbers; refresh them by hand if a newer month has published}.
+
+\colfig{3.4in}{nowcast-starts-backtest.png}{\textbf{Pipeline model vs.\ actual U.S.\ housing starts (total units, annualized), last 48 months.} Shaded band is the 24-month backtest (typical miss 62k, correlation 0.45). The diamond is the November 2026 nowcast, 1,274k; its bar is $\pm$62k, the model's typical recent miss, not a formal confidence interval.\srcnum{15}\srcnum{16}\srcnum{17}}
+
+% ======================================================================
+\section{Bottom Line}
+\begin{itemize}
+\item \textbf{Starts are leveling off, not collapsing.} My model puts November at about 1.27 million (annualized), a modest dip, and nearly all of it is already locked in by permits issued through October.
+\item \textbf{The squeeze is at the entry level.} Mortgage rates near 7.3\%\srcnum{18}, flat rents that make renting easy\srcnum{29} and tighter construction lending\srcnum{12} hit first-time buyers and the builders who serve them; every entry-level builder in Figure~3 shrank.\srcnum{4}
+\item \textbf{Luxury is the exception.} Cash-heavy buyers (25\% at Toll Brothers\srcnum{1}) don't depend on mortgage rates, which is why Toll was the only large builder that grew.
+\item \textbf{What I'd watch next:} the Fed's December meeting\srcnum{32}, the November starts release, and whether builders keep buying down rates to protect sales at the expense of margins.
+\end{itemize}
+
+% ======================================================================
+\section{Methodology Notes \& Limitations}
+\begin{itemize}
+\item \textbf{New permits are the model's biggest blind spot.} A large share of homes start within about a month of being permitted -- Census puts it at 37\% of single-family and 30\% of 2+ unit homes\srcnum{17} -- so the newest permits drive a big part of each month's starts (418,000 of my 1.27 million November estimate came from October's permits). My model only carries permits forward on historical timing patterns; it doesn't predict how many new permits will be issued. I think a multiple regression of new permits (annualized) on drivers like consumer sentiment, search trends, interest rates and inflation would make it more accurate, especially for looking more than a month ahead.
+\item Starts and permits are reported as annualized rates; divide by 12 before comparing them with point-in-time counts like homes under construction.
+\item Census timing tables say how long permitted homes take to start, not what share ever start. I handle that share with a trailing starts-to-permits ratio; tracking each month's permits forward with Census's start-rate tables would be the better next step.
+\item Census revises recent months, so a true real-time test needs the numbers as first published, not today's revised ones.
+\item Google Trends is a sampled index, not a raw count: keep region, terms and dates fixed, and never use future data when backtesting.
+\end{itemize}
+\end{multicols}
+
+% The brief is exactly three pages; back matter starts on its own page.
+\clearpage
+\input{MI_Data_Case_Study_Sources_and_AI_Disclosure}
+
+\end{document}
